@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rolling Wave Forecasting Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      background-color: #f7f7f7;
+      color: #333;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #007acc;
+    }
+    .explanation, .potential-uses, .recommendations {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      padding: 1em;
+      margin-bottom: 1em;
+    }
+    table {
+      width: 100%;
+      max-width: 900px;
+      border-collapse: collapse;
+      background-color: #fff;
+      margin-bottom: 1em;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    input[type="number"], input[type="text"] {
+      width: 100px;
+      padding: 4px;
+      text-align: right;
+    }
+    input.iter-name {
+      width: 150px;
+      text-align: center;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #007acc;
+      border: none;
+      color: #fff;
+      font-size: 1em;
+      cursor: pointer;
+      margin: 0.5em 0;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    .control-group {
+      margin-bottom: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Rolling Wave Forecasting Tool</h1>
+
+  <div class="explanation">
+    <h2>About This Tool</h2>
+    <p>
+      This tool uses Rolling Wave Forecasting—a technique where near-term iterations are planned in detail (with Story Point forecasts), 
+      and longer-term iterations remain at a higher level. As actual performance data (delivered Story Points) becomes available for completed iterations, 
+      the tool calculates the average deviation (error) between the forecast and actual outcomes. This average error is then applied as an adjustment to the future iterations.
+    </p>
+    <p>
+      <strong>Inputs:</strong>
+      <ul>
+        <li><strong>Iteration Name</strong> (modifiable text field)</li>
+        <li><strong>Initial Forecast</strong> in Story Points (planned work for each iteration)</li>
+        <li><strong>Actual</strong> in Story Points (delivered work for completed iterations)</li>
+      </ul>
+      <strong>Output:</strong> 
+      <ul>
+        <li><strong>Revised Forecast</strong> in Story Points, which adjusts the future forecasts based on past performance.</li>
+      </ul>
+    </p>
+  </div>
+
+  <div class="control-group">
+    <label for="iterationCount"><strong>Number of Iterations (max 12):</strong></label>
+    <input type="number" id="iterationCount" min="1" max="12" value="6">
+    <button onclick="generateTable()">Generate Table</button>
+  </div>
+
+  <div id="tableContainer"></div>
+
+  <button onclick="updateForecast()">Update Forecast</button>
+
+  <div class="recommendations" id="resultExplanation" style="display: none;">
+    <h2>Forecast Update Explanation</h2>
+    <p id="explanationText"></p>
+    <h3>Recommendations</h3>
+    <ul id="recommendationsList"></ul>
+  </div>
+
+  <script>
+    // Generate the table based on number of iterations
+    function generateTable() {
+      const numIterations = parseInt(document.getElementById("iterationCount").value);
+      if (isNaN(numIterations) || numIterations < 1 || numIterations > 12) {
+        alert("Please enter a number between 1 and 12 for the iterations.");
+        return;
+      }
+
+      let tableHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Iteration</th>
+              <th>Iteration Name</th>
+              <th>Initial Forecast<br />(Story Points)</th>
+              <th>Actual Delivered<br />(Story Points)</th>
+              <th>Revised Forecast<br />(Story Points)</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      for (let i = 1; i <= numIterations; i++) {
+        // For completed iterations, we assume actual data is available (for demonstration, default values for first half).
+        let defaultActual = (i <= Math.floor(numIterations / 2)) ? (50 + i * 2) : "";
+        let defaultForecast = 50 + i * 5;  // Some default forecast value
+        tableHTML += `
+          <tr>
+            <td>${i}</td>
+            <td><input type="text" class="iter-name" id="name${i}" value="Iteration ${i}"></td>
+            <td><input type="number" id="forecast${i}" min="0" value="${defaultForecast}"></td>
+            <td><input type="number" id="actual${i}" min="0" value="${defaultActual}"></td>
+            <td id="revised${i}">-</td>
+          </tr>
+        `;
+      }
+      tableHTML += `
+          </tbody>
+        </table>
+      `;
+      document.getElementById("tableContainer").innerHTML = tableHTML;
+      // Hide the explanation until update is performed.
+      document.getElementById("resultExplanation").style.display = 'none';
+    }
+
+    // Calculate revised forecasts based on average error from completed iterations
+    function updateForecast() {
+      const numIterations = parseInt(document.getElementById("iterationCount").value);
+      let totalError = 0, count = 0;
+      // Completed iterations: assume if Actual field is filled (non-empty)
+      for (let i = 1; i <= numIterations; i++) {
+        const forecastVal = parseFloat(document.getElementById(`forecast${i}`).value);
+        const actualField = document.getElementById(`actual${i}`).value;
+        if (actualField !== "") {
+          const actualVal = parseFloat(actualField);
+          if (!isNaN(forecastVal) && !isNaN(actualVal)) {
+            totalError += (actualVal - forecastVal);
+            count++;
+          }
+        }
+      }
+      
+      let avgError = count > 0 ? totalError / count : 0;
+      
+      // Update revised forecasts:
+      // For iterations with Actual entered, use the Actual value as the Revised Forecast.
+      // For future iterations (no actual value), use: Revised = Forecast + avgError.
+      for (let i = 1; i <= numIterations; i++) {
+        const forecastVal = parseFloat(document.getElementById(`forecast${i}`).value);
+        const actualField = document.getElementById(`actual${i}`).value;
+        let revisedForecast = "-";
+        if (actualField !== "") {
+          revisedForecast = parseFloat(actualField).toFixed(2);
+        } else if (!isNaN(forecastVal)) {
+          revisedForecast = (forecastVal + avgError).toFixed(2);
+        }
+        document.getElementById(`revised${i}`).innerText = revisedForecast;
+      }
+      
+      // Build the explanation text.
+      let explanationText = "";
+      if (count > 0) {
+        explanationText += `Based on the ${count} completed iteration(s), the average error (Actual minus Forecast) is ${avgError.toFixed(2)} Story Points. `;
+        explanationText += `This means, on average, your team delivered ${avgError.toFixed(2)} Story Points more (or less, if negative) than forecasted. `;
+        explanationText += `For future iterations without actual data, we have adjusted the forecast by adding this average error. `;
+      } else {
+        explanationText = "No completed iterations were provided. Please enter actual delivered Story Points for at least one iteration to adjust the forecast.";
+      }
+      
+      // Build recommendations based on the average error.
+      let recommendations = [];
+      if (avgError > 5) {
+        recommendations.push("Your team is consistently delivering more than forecasted. Consider revising your estimation methods or increasing your forecast to reflect higher capacity.");
+      } else if (avgError < -5) {
+        recommendations.push("Your team is consistently underperforming against the forecast. Review your planning and identify potential risks or impediments.");
+      } else {
+        recommendations.push("Your forecasts are relatively accurate. Continue monitoring performance and adjust as needed.");
+      }
+      recommendations.push("Use these revised forecasts for more informed sprint planning and resource allocation.");
+      
+      // Display explanation and recommendations.
+      document.getElementById("explanationText").innerText = explanationText;
+      const recList = document.getElementById("recommendationsList");
+      recList.innerHTML = "";
+      recommendations.forEach(function(rec) {
+        let li = document.createElement("li");
+        li.innerText = rec;
+        recList.appendChild(li);
+      });
+      
+      document.getElementById("resultExplanation").style.display = 'block';
+      alert("Forecasts updated based on completed iterations.");
+    }
+
+    // Generate the table initially
+    generateTable();
+  </script>
+</body>
+</html>
