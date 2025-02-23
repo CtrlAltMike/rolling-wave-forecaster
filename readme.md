@@ -8,6 +8,8 @@ A browser-based proof-of-concept (POC) tool for Rolling Wave Forecasting designe
 
 Rolling Wave Forecasting is a planning technique where detailed planning is performed for near-term iterations while longer-term iterations are kept at a higher level of estimation. As actual performance data becomes available for completed iterations, forecasts for future iterations are adjusted to reflect historical deviations. This tool uses the average error (the difference between Actual Delivered and the Initial Forecast in Story Points) from completed iterations to update future forecasts.
 
+<img width="873" alt="image" src="https://github.com/user-attachments/assets/8ffecfc3-4366-4fc6-a7e8-1aded2eefff9" />
+
 ---
 
 ## Features
